@@ -303,5 +303,9 @@ def check(P, R):
 
 
 def getSpan(array):
-    
-    return _np.absolute(array).max()
+    """Return the span of `array`
+
+    span(array) = max array(s) - min array(s)
+
+    """
+    return array.max() - array.min()

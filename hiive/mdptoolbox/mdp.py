@@ -64,11 +64,11 @@ import scipy.sparse as _sp
 import hiive.mdptoolbox.util as _util
 
 _MSG_STOP_MAX_ITER = "Iterating stopped due to maximum number of iterations " \
-                     "condition."
+    "condition."
 _MSG_STOP_EPSILON_OPTIMAL_POLICY = "Iterating stopped, epsilon-optimal " \
-                                   "policy found."
+    "policy found."
 _MSG_STOP_EPSILON_OPTIMAL_VALUE = "Iterating stopped, epsilon-optimal value " \
-                                  "function found."
+    "function found."
 _MSG_STOP_UNCHANGING_POLICY = "Iterating stopped, unchanging policy found."
 
 
@@ -93,7 +93,8 @@ def _printVerbosity(iteration, variation):
         print("{:>10}{:>12}".format(iteration, variation))
 
 
-class MDP:
+class MDP(object):
+
     """A Markov Decision Problem.
 
     Let ``S`` = the number of states, and ``A`` = the number of acions.
@@ -122,7 +123,7 @@ class MDP:
         numpy arrays. In addition, the outer list can be replaced by any object
         that can be indexed like ``reward[a]`` such as a tuple or numpy object
         array of length ``A``.
-    gamma : float
+    discount : float
         Discount factor. The per time-step discount factor on future rewards.
         Valid values are greater than 0 upto and including 1. If the discount
         factor is 1, then convergence is cannot be assumed and a warning will
@@ -155,7 +156,7 @@ class MDP:
         The optimal value function. Each element is a float corresponding to
         the expected value of being in that state assuming the optimal policy
         is followed.
-    gamma : float
+    discount : float
         The discount rate on future rewards.
     max_iter : int
         The maximum number of iterations.
@@ -178,14 +179,14 @@ class MDP:
 
     """
 
-    def __init__(self, transitions, reward, gamma, epsilon, max_iter,
+    def __init__(self, transitions, reward, discount, epsilon, max_iter,
                  skip_check=False):
         # Initialise a MDP based on the input parameters.
 
         # if the discount is None then the algorithm is assumed to not use it
         # in its computations
-        if gamma is not None:
-            self.gamma = float(gamma)
+        if discount is not None:
+            self.gamma = float(discount)
             assert 0.0 < self.gamma <= 1.0, (
                 "Discount rate must be in ]0; 1]"
             )
@@ -233,7 +234,7 @@ class MDP:
         for aa in range(self.A):
             P_repr += repr(self.P[aa]) + "\n"
             R_repr += repr(self.R[aa]) + "\n"
-        return (P_repr + "\n" + R_repr)
+        return(P_repr + "\n" + R_repr)
 
     def _bellmanOperator(self, V=None):
         # Apply the Bellman operator on the value function.
@@ -251,7 +252,7 @@ class MDP:
             # make sure the user supplied V is of the right shape
             try:
                 assert V.shape in ((self.S,), (1, self.S)), "V is not the " \
-                                                            "right shape (Bellman operator)."
+                    "right shape (Bellman operator)."
             except AttributeError:
                 raise TypeError("V must be a numpy array or matrix.")
         # Looping through each action the the Q-value matrix is calculated.
@@ -356,6 +357,7 @@ class MDP:
 
 
 class FiniteHorizon(MDP):
+
     """A MDP solved using the finite-horizon backwards induction algorithm.
 
     Parameters
@@ -366,7 +368,7 @@ class FiniteHorizon(MDP):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     N : int
@@ -411,13 +413,13 @@ class FiniteHorizon(MDP):
 
     """
 
-    def __init__(self, transitions, reward, gamma, N, h=None,
+    def __init__(self, transitions, reward, discount, N, h=None,
                  skip_check=False):
         # Initialise a finite horizon MDP.
         self.N = int(N)
         assert self.N > 0, "N must be greater than 0."
         # Initialise the base class
-        MDP.__init__(self, transitions, reward, gamma, None, None,
+        MDP.__init__(self, transitions, reward, discount, None, None,
                      skip_check=skip_check)
         # remove the iteration counter, it is not meaningful for backwards
         # induction
@@ -453,6 +455,7 @@ class FiniteHorizon(MDP):
 
 
 class _LP(MDP):
+
     """A discounted MDP soloved using linear programming.
 
     This class requires the Python ``cvxopt`` module to be installed.
@@ -465,7 +468,7 @@ class _LP(MDP):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     h : array, optional
@@ -500,7 +503,7 @@ class _LP(MDP):
 
     """
 
-    def __init__(self, transitions, reward, gamma, skip_check=False):
+    def __init__(self, transitions, reward, discount, skip_check=False):
         # Initialise a linear programming MDP.
         # import some functions from cvxopt and set them as object methods
         try:
@@ -511,7 +514,7 @@ class _LP(MDP):
             raise ImportError("The python module cvxopt is required to use "
                               "linear programming functionality.")
         # initialise the MDP. epsilon and max_iter are not needed
-        MDP.__init__(self, transitions, reward, gamma, None, None,
+        MDP.__init__(self, transitions, reward, discount, None, None,
                      skip_check=skip_check)
         # Set the cvxopt solver to be quiet by default, but ...
         # this doesn't do what I want it to do c.f. issue #3
@@ -553,6 +556,7 @@ class _LP(MDP):
 
 
 class PolicyIteration(MDP):
+
     """A discounted MDP solved using the policy iteration algorithm.
 
     Arguments
@@ -563,7 +567,7 @@ class PolicyIteration(MDP):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     policy0 : array, optional
@@ -613,13 +617,12 @@ class PolicyIteration(MDP):
     (0, 0, 0)
     """
 
-    def __init__(self, transitions, reward, gamma, policy0=None,
-                 max_iter=1000, eval_type=0, skip_check=False,
-                 run_stat_frequency=None):
+    def __init__(self, transitions, reward, discount, policy0=None,
+                 max_iter=1000, eval_type=0, skip_check=False):
         # Initialise a policy iteration MDP.
         #
         # Set up the MDP, but don't need to worry about epsilon values
-        MDP.__init__(self, transitions, reward, gamma, None, max_iter,
+        MDP.__init__(self, transitions, reward, discount, None, max_iter,
                      skip_check=skip_check)
         # Check if the user has supplied an initial policy. If not make one.
         self.run_stats = None
@@ -634,7 +637,7 @@ class PolicyIteration(MDP):
             # Make sure it is a numpy array
             policy0 = _np.array(policy0)
             # Make sure the policy is the right size and shape
-            assert policy0.shape in ((self.S,), (self.S, 1), (1, self.S)), \
+            assert policy0.shape in ((self.S, ), (self.S, 1), (1, self.S)), \
                 "'policy0' must a vector with length S."
             # reshape the policy to be a vector
             policy0 = policy0.reshape(self.S)
@@ -646,11 +649,6 @@ class PolicyIteration(MDP):
             self.policy = policy0
         # set the initial values to zero
         self.V = _np.zeros(self.S)
-        self.error_mean = []
-        self.v_mean = []
-        self.p_cumulative = []
-        self.run_stat_frequency = max(1, max_iter // 10000) if run_stat_frequency is None else run_stat_frequency
-
         # Do some setup depending on the evaluation type
         if eval_type in (0, "matrix"):
             self.eval_type = "matrix"
@@ -738,7 +736,7 @@ class PolicyIteration(MDP):
         # number of iterations reached.
         #
         try:
-            assert V0.shape in ((self.S,), (self.S, 1), (1, self.S)), \
+            assert V0.shape in ((self.S, ), (self.S, 1), (1, self.S)), \
                 "'V0' must be a vector of length S."
             policy_V = _np.array(V0).reshape(self.S)
         except AttributeError:
@@ -804,66 +802,32 @@ class PolicyIteration(MDP):
         self.V = policy_V
         return policy_V, Rpolicy, None
 
-    def _build_run_stat(self, i, s, a, r, p, v, error):
-        run_stat = {
-            'State': s,
-            'Action': a,
-            'Reward': r,
+    def _build_run_stat(self, s, a, r, p, v, error):
+        return {
+            'State': None,
+            'Action': None,
+            'Max V': r,
             'Error': error,
             'Time': _time.time() - self.time,
-            'V[0]': v[0],
-            'Max V': _np.max(v),
-            'Mean V': _np.mean(v),
-            'Iteration': i,
-            # 'Value': v.copy(),
-            # 'Policy': p.copy()
+            'Value': v.copy(),
+            'Policy': p.copy()
         }
-        return run_stat
 
     def run(self):
         # Run the policy iteration algorithm.
         self._startRun()
         self.run_stats = []
-
-        self.error_mean = []
-        error_cumulative = []
-
-        self.v_mean = []
-        v_cumulative = []
-
-        self.p_cumulative = []
-        run_stats = []
         while True:
             self.iter += 1
-            take_run_stat = self.iter % self.run_stat_frequency == 0 or self.iter == self.max_iter
             # these _evalPolicy* functions will update the classes value
             # attribute
             policy_V, policy_R, itr = (self._evalPolicyMatrix()
                                        if self.eval_type == 'matrix'
                                        else self._evalPolicyIterative())
-
-            if take_run_stat:
-                v_cumulative.append(policy_V)
-                if len(v_cumulative) == 100:
-                    self.v_mean.append(_np.mean(v_cumulative, axis=1))
-                    v_cumulative = []
-                if len(self.p_cumulative) == 0 or not _np.array_equal(self.policy, self.p_cumulative[-1][1]):
-                    self.p_cumulative.append((self.iter, self.policy.copy()))
-
             # This should update the classes policy attribute but leave the
             # value alone
             policy_next, next_v = self._bellmanOperator()
-            error = _np.absolute(next_v - policy_V).max()
-            run_stats.append(self._build_run_stat(i=self.iter, s=None, a=None, r=_np.max(policy_V),
-                                                  p=policy_next, v=policy_V, error=error))
-
-            if take_run_stat:
-                error_cumulative.append(error)
-                if len(error_cumulative) == 100:
-                    self.error_mean.append(_np.mean(error_cumulative))
-                    error_cumulative = []
-                self.run_stats.append(run_stats[-1])
-                run_stats = []
+            var = _np.absolute(next_v - policy_V).max()
             del next_v
             # calculate in how many places does the old policy disagree with
             # the new policy
@@ -875,6 +839,9 @@ class PolicyIteration(MDP):
             # of iterations has been reached then stop
 
             # Error, rewards, and time for every iteration and number of PI steps which might be specific to my setup
+            self.run_stats.append(self._build_run_stat(s=None, a=None, r=_np.max(policy_V),
+                                                       p=policy_next, v=policy_V, error=var))
+
             if nd == 0:
                 if self.verbose:
                     print(_MSG_STOP_UNCHANGING_POLICY)
@@ -887,17 +854,11 @@ class PolicyIteration(MDP):
                 self.policy = policy_next
 
         self._endRun()
-        # add stragglers
-        if len(v_cumulative) > 0:
-            self.v_mean.append(_np.mean(v_cumulative, axis=1))
-        if len(error_cumulative) > 0:
-            self.error_mean.append(_np.mean(error_cumulative))
-        if self.run_stats is None or len(self.run_stats) == 0:
-            self.run_stats = run_stats
         return self.run_stats
 
 
 class PolicyIterationModified(PolicyIteration):
+
     """A discounted MDP  solved using a modified policy iteration algorithm.
 
     Arguments
@@ -908,7 +869,7 @@ class PolicyIterationModified(PolicyIteration):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     epsilon : float, optional
@@ -947,7 +908,7 @@ class PolicyIterationModified(PolicyIteration):
 
     """
 
-    def __init__(self, transitions, reward, gamma, epsilon=0.01,
+    def __init__(self, transitions, reward, discount, epsilon=0.01,
                  max_iter=10, skip_check=False):
         # Initialise a (modified) policy iteration MDP.
 
@@ -956,7 +917,7 @@ class PolicyIterationModified(PolicyIteration):
         # being calculated here which doesn't need to be. The only thing that
         # is needed from the PolicyIteration class is the _evalPolicyIterative
         # function. Perhaps there is a better way to do it?
-        PolicyIteration.__init__(self, transitions, reward, gamma, None,
+        PolicyIteration.__init__(self, transitions, reward, discount, None,
                                  max_iter, 1, skip_check=skip_check)
 
         # PolicyIteration doesn't pass epsilon to MDP.__init__() so we will
@@ -1010,6 +971,7 @@ class PolicyIterationModified(PolicyIteration):
 
 
 class QLearning(MDP):
+
     """A discounted MDP solved using the Q learning algorithm.
 
     Parameters
@@ -1082,10 +1044,9 @@ class QLearning(MDP):
     """
 
     def __init__(self, transitions, reward, gamma,
-                 alpha=0.1, alpha_decay=0.99, alpha_min=0.001,
+                 alpha=0.1, alpha_decay=0.99, alpha_min=0.1,
                  epsilon=1.0, epsilon_min=0.1, epsilon_decay=0.99,
-                 n_iter=10000, skip_check=False, iter_callback=None,
-                 run_stat_frequency=None):
+                 n_iter=10000, seed=100, threshold=0.00001, reinitialization=100, skip_check=False, verbose=False):
         # Initialise a Q-learning MDP.
 
         # The following check won't be done in MDP()'s initialisation, so let's
@@ -1101,54 +1062,43 @@ class QLearning(MDP):
         # Store P, S, and A
         self.S, self.A = _computeDimensions(transitions)
         self.P = self._computeTransition(transitions)
-
         self.R = reward
 
+        # set np seed
+        _np.random.seed(seed)
+
         self.alpha = _np.clip(alpha, 0., 1.)
-        self.alpha_start = self.alpha
         self.alpha_decay = _np.clip(alpha_decay, 0., 1.)
         self.alpha_min = _np.clip(alpha_min, 0., 1.)
         self.gamma = _np.clip(gamma, 0., 1.)
         self.epsilon = _np.clip(epsilon, 0., 1.)
-        self.epsilon_start = self.epsilon
         self.epsilon_decay = _np.clip(epsilon_decay, 0., 1.)
         self.epsilon_min = _np.clip(epsilon_min, 0., 1.)
+        self.threshold = threshold
+        self.reinitialization = reinitialization
+        self.verbose = verbose
 
         # Initialisations
         self.Q = _np.zeros((self.S, self.A))
-
         self.run_stats = []
-        self.error_mean = []
-        self.v_mean = []
-        self.p_cumulative = []
-        self.iter_callback = iter_callback
-        self.S_freq = _np.zeros((self.S, self.A))
-        self.run_stat_frequency = max(1, self.max_iter // 10000) if run_stat_frequency is None else run_stat_frequency
+        self.rewards = []
 
     def run(self):
 
         # Run the Q-learning algorithm.
-        error_cumulative = []
+        discrepancy = []
         self.run_stats = []
-        self.error_mean = []
-
-        v_cumulative = []
-        self.v_mean = []
-
-        self.p_cumulative = []
+        self.deltas = []
 
         self.time = _time.time()
 
         # initial state choice
         s = _np.random.randint(0, self.S)
-        reset_s = False
-        run_stats = []
+
         for n in range(1, self.max_iter + 1):
 
-            take_run_stat = n % self.run_stat_frequency == 0 or n == self.max_iter
-
             # Reinitialisation of trajectories every 100 transitions
-            if (self.iter_callback is None and (n % 100) == 0) or reset_s:
+            if (n % self.reinitialization) == 0:
                 s = _np.random.randint(0, self.S)
 
             # Action choice : greedy with increasing probability
@@ -1176,13 +1126,19 @@ class QLearning(MDP):
                 except IndexError:
                     r = self.R[s]
 
+            self.rewards.append(r)
+
             # Q[s, a] = Q[s, a] + alpha*(R + gamma*Max[Q(s’, A)] - Q[s, a])
             # Updating the value of Q
             dQ = self.alpha * (r + self.gamma * self.Q[s_new, :].max() - self.Q[s, a])
+
             self.Q[s, a] = self.Q[s, a] + dQ
 
-            # Computing means all over maximal Q variations values
+            # Computing and saving Q value variation
             error = _np.absolute(dQ)
+            delta = _np.sum(_np.absolute(dQ))
+            if delta > 0:
+                self.deltas.append(delta)
 
             # compute the value function and the policy
             v = self.Q.max(axis=1)
@@ -1190,59 +1146,45 @@ class QLearning(MDP):
             p = self.Q.argmax(axis=1)
             self.policy = p
 
-            self.S_freq[s,a] += 1
-            run_stats.append(self._build_run_stat(i=n, s=s, a=a, r=r, p=p, v=v, error=error))
+            """
+            Rewards,errors time at each iteration I think
+            But that’s for all of them and steps per episode?
 
-            if take_run_stat:
-                error_cumulative.append(error)
-
-                if len(error_cumulative) == 100:
-                    self.error_mean.append(_np.mean(error_cumulative))
-                    error_cumulative = []
-
-                v_cumulative.append(v)
-
-                if len(v_cumulative) == 100:
-                    self.v_mean.append(_np.mean(v_cumulative, axis=1))
-                    v_cumulative = []
-
-                if len(self.p_cumulative) == 0 or not _np.array_equal(self.policy, self.p_cumulative[-1][1]):
-                    self.p_cumulative.append((n, self.policy.copy()))
-                """
-                Rewards,errors time at each iteration I think
-                But that’s for all of them and steps per episode?
-
-                Alpha decay and min ?
-                And alpha and epsilon at each iteration?
-                """
-                self.run_stats.append(run_stats[-1])
-                run_stats = []
-
-            if self.iter_callback is not None:
-                reset_s = self.iter_callback(s, a, s_new)
+            Alpha decay and min ?
+            And alpha and epsilon at each iteration?
+            """
+            self.run_stats.append(self._build_run_stat(s=s, a=a, r=r, p=p, v=v, error=error))
 
             # current state is updated
             s = s_new
 
-            self.alpha *= self.alpha_decay
-            if self.alpha < self.alpha_min:
-                self.alpha = self.alpha_min
+            # only update these when q value is updated
+            if dQ > 0:
+                self.alpha *= self.alpha_decay
+                if self.alpha < self.alpha_min:
+                    self.alpha = self.alpha_min
 
-            self.epsilon *= self.epsilon_decay
-            if self.epsilon < self.epsilon_min:
-                self.epsilon = self.epsilon_min
+                self.epsilon *= self.epsilon_decay
+                if self.epsilon < self.epsilon_min:
+                    self.epsilon = self.epsilon_min
+
+            if n % 1000 == 0 and self.verbose:
+                print('N:{n}\tAlpha:{a}\tEpsilon:{e}\tAvg Delta:{d}\tMoving Sum Reward:{r}'.format(n=n, a=round(self.alpha, 5), e=round(self.epsilon, 5),
+                                                                                                   d=round(_np.mean(self.deltas[-10000:]), 5),
+                                                                                                   r=round(_np.sum(self.rewards[-10000:]))))
+            # reset rewards list to save memory
+            if n % 10000 == 0:
+                self.rewards = []
+
+            # check for convergence
+            if _np.mean(self.deltas[-10000:]) < self.threshold:
+                break
+                
 
         self._endRun()
-        # add stragglers
-        if len(v_cumulative) > 0:
-            self.v_mean.append(_np.mean(v_cumulative, axis=1))
-        if len(error_cumulative) > 0:
-            self.error_mean.append(_np.mean(error_cumulative))
-        if self.run_stats is None or len(self.run_stats) == 0:
-            self.run_stats = run_stats
         return self.run_stats
 
-    def _build_run_stat(self, i, a, error, p, r, s, v):
+    def _build_run_stat(self, a, error, p, r, s, v):
         run_stat = {
             'State': s,
             'Action': a,
@@ -1251,18 +1193,15 @@ class QLearning(MDP):
             'Time': _time.time() - self.time,
             'Alpha': self.alpha,
             'Epsilon': self.epsilon,
-            'Gamma': self.gamma,
-            'V[0]': v[0],
             'Max V': _np.max(v),
-            'Mean V': _np.mean(v),
-            'Iteration': i,
-            # 'Value': v.copy(),
-            # 'Policy': p.copy()
+            'Value': v.copy(),
+            'Policy': p.copy()
         }
         return run_stat
 
 
 class RelativeValueIteration(MDP):
+
     """A MDP solved using the relative value iteration algorithm.
 
     Arguments
@@ -1334,7 +1273,7 @@ class RelativeValueIteration(MDP):
                  skip_check=False):
         # Initialise a relative value iteration MDP.
 
-        MDP.__init__(self, transitions, reward, None, epsilon, max_iter,
+        MDP.__init__(self,  transitions, reward, None, epsilon, max_iter,
                      skip_check=skip_check)
 
         self.epsilon = epsilon
@@ -1380,6 +1319,7 @@ class RelativeValueIteration(MDP):
 
 
 class ValueIteration(MDP):
+
     """A discounted MDP solved using the value iteration algorithm.
 
     Description
@@ -1402,7 +1342,7 @@ class ValueIteration(MDP):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     epsilon : float, optional
@@ -1495,12 +1435,11 @@ class ValueIteration(MDP):
 
     """
 
-    def __init__(self, transitions, reward, gamma, epsilon=0.01,
-                 max_iter=1000, initial_value=0, skip_check=False,
-                 run_stat_frequency=None):
+    def __init__(self, transitions, reward, discount, epsilon=0.01,
+                 max_iter=1000, initial_value=0, skip_check=False):
         # Initialise a value iteration MDP.
 
-        MDP.__init__(self, transitions, reward, gamma, epsilon, max_iter,
+        MDP.__init__(self, transitions, reward, discount, epsilon, max_iter,
                      skip_check=skip_check)
         self.run_stats = None
         # initialization of optional arguments
@@ -1508,7 +1447,7 @@ class ValueIteration(MDP):
             self.V = _np.zeros(self.S)
         else:
             assert len(initial_value) == self.S, "The initial value must be " \
-                                                 "a vector of length S."
+                "a vector of length S."
             self.V = _np.array(initial_value).reshape(self.S)
         if self.gamma < 1:
             # compute a bound for the number of iterations and update the
@@ -1516,14 +1455,10 @@ class ValueIteration(MDP):
             self._boundIter(epsilon)
             # computation of threshold of variation for V for an epsilon-
             # optimal policy
-            self.thresh = epsilon
+            self.thresh = epsilon * (1 - self.gamma) / self.gamma
         else:  # discount == 1
             # threshold of variation for V for an epsilon-optimal policy
             self.thresh = epsilon
-        self.v_mean = []
-        self.error_mean = []
-        self.p_cumulative = []
-        self.run_stat_frequency = max(1, self.max_iter // 10000) if run_stat_frequency is None else run_stat_frequency
 
     def _boundIter(self, epsilon):
         # Compute a bound for the number of iterations.
@@ -1575,15 +1510,9 @@ class ValueIteration(MDP):
         # Run the value iteration algorithm.
         self._startRun()
         self.run_stats = []
-        error_cumulative = []
-        v_cumulative = []
-        self.v_mean = []
-        self.error_mean = []
-        self.p_cumulative = []
-        run_stats = []
+
         while True:
             self.iter += 1
-            take_run_stat = self.iter % self.run_stat_frequency == 0 or self.iter == self.max_iter
 
             Vprev = self.V.copy()
 
@@ -1593,27 +1522,14 @@ class ValueIteration(MDP):
             # The values, based on Q. For the function "max()": the option
             # "axis" means the axis along which to operate. In this case it
             # finds the maximum of the the rows. (Operates along the columns?)
-            error = _util.getSpan(self.V - Vprev)
-            run_stats.append(self._build_run_stat(i=self.iter, s=None, a=None, r=_np.max(self.V),
-                                                           p=self.policy, v=self.V, error=error))
-            if take_run_stat:
-                error_cumulative.append(error)
-                if len(self.p_cumulative) == 0 or not _np.array_equal(self.policy, self.p_cumulative[-1][1]):
-                    self.p_cumulative.append((self.iter, self.policy.copy()))
-                if len(v_cumulative) == 100:
-                    self.v_mean.append(_np.mean(v_cumulative, axis=1))
-                    v_cumulative = []
-                if len(error_cumulative) == 100:
-                    self.error_mean.append(_np.mean(error_cumulative))
-                    error_cumulative = []
+            var = _util.getSpan(self.V - Vprev)
 
-                self.run_stats.append(run_stats[-1])
-                run_stats = []
+            self.run_stats.append(self._build_run_stat(s=None, a=None, r=_np.max(self.V), p=self.policy, v=self.V, error=var))
 
             if self.verbose:
-                _printVerbosity(self.iter, error)
+                _printVerbosity(self.iter, var)
 
-            if error < self.thresh:
+            if var < self.thresh:
                 if self.verbose:
                     print(_MSG_STOP_EPSILON_OPTIMAL_POLICY)
                 break
@@ -1623,35 +1539,23 @@ class ValueIteration(MDP):
                 break
 
         self._endRun()
-
-        # catch stragglers
-        if len(v_cumulative) > 0:
-            self.v_mean.append(_np.mean(v_cumulative, axis=1))
-        if len(error_cumulative) > 0:
-            self.error_mean.append(_np.mean(error_cumulative))
-        if self.run_stats is None or len(self.run_stats) == 0:
-            self.run_stats = run_stats
         return self.run_stats
 
-    def _build_run_stat(self, i, s, a, r, p, v, error):
+    def _build_run_stat(self, s, a, r, p, v, error):
         run_stat = {
             'State': None,
             'Action': None,
-            'Reward': r,
+            'Max V': r,
             'Error': error,
             'Time': _time.time() - self.time,
-            # 'Epsilon': self.epsilon,
-            'Max V': _np.max(v),
-            'Mean V': _np.mean(v),
-            'Iteration': i,
-
-            # 'Value': v.copy(),
-            # 'Policy': p.copy()
+            'Epsilon': self.epsilon,
+            'Value': v.copy(),
+            'Policy': p.copy()
         }
         return run_stat
 
-
 class ValueIterationGS(ValueIteration):
+
     """
     A discounted MDP solved using the value iteration Gauss-Seidel algorithm.
 
@@ -1663,7 +1567,7 @@ class ValueIterationGS(ValueIteration):
     reward : array
         Reward matrices or vectors. See the documentation for the ``MDP`` class
         for details.
-    gamma : float
+    discount : float
         Discount factor. See the documentation for the ``MDP`` class for
         details.
     epsilon : float, optional
@@ -1708,11 +1612,11 @@ class ValueIterationGS(ValueIteration):
 
     """
 
-    def __init__(self, transitions, reward, gamma, epsilon=0.01,
+    def __init__(self, transitions, reward, discount, epsilon=0.01,
                  max_iter=10, initial_value=0, skip_check=False):
         # Initialise a value iteration Gauss-Seidel MDP.
 
-        MDP.__init__(self, transitions, reward, gamma, epsilon, max_iter,
+        MDP.__init__(self, transitions, reward, discount, epsilon, max_iter,
                      skip_check=skip_check)
 
         # initialization of optional arguments

@@ -14,8 +14,7 @@ Available functions
     A random example
 :func:`~mdptoolbox.example.small`
     A very small example
-:func:`~mdptoolbox.example.openai`
-    A discrete OpenAI Gym environment
+
 """
 
 # Copyright (c) 2011-2014 Steven A. W. Cordwell
@@ -49,7 +48,6 @@ Available functions
 
 import numpy as _np
 import scipy.sparse as _sp
-from . import openai as openai_
 
 
 def forest(S=3, r1=4, r2=2, p=0.1, is_sparse=False):
@@ -128,8 +126,8 @@ def forest(S=3, r1=4, r2=2, p=0.1, is_sparse=False):
 
     Examples
     --------
-    >>> import hiive.mdptoolbox.example
-    >>> P, R = hiive.mdptoolbox.example.forest()
+    >>> import mdptoolbox.example
+    >>> P, R = mdptoolbox.example.forest()
     >>> P
     array([[[ 0.1,  0.9,  0. ],
             [ 0.1,  0. ,  0.9],
@@ -142,7 +140,7 @@ def forest(S=3, r1=4, r2=2, p=0.1, is_sparse=False):
     array([[ 0.,  0.],
            [ 0.,  1.],
            [ 4.,  2.]])
-    >>> Psp, Rsp = hiive.mdptoolbox.example.forest(is_sparse=True)
+    >>> Psp, Rsp = mdptoolbox.example.forest(is_sparse=True)
     >>> len(Psp)
     2
     >>> Psp[0]
@@ -296,9 +294,9 @@ def rand(S, A, is_sparse=False, mask=None):
 
     Examples
     --------
-    >>> import numpy, hiive.mdptoolbox.example
+    >>> import numpy, mdptoolbox.example
     >>> numpy.random.seed(0) # Needed to get the output below
-    >>> P, R = hiive.mdptoolbox.example.rand(4, 3)
+    >>> P, R = mdptoolbox.example.rand(4, 3)
     >>> P
     array([[[ 0.21977283,  0.14889403,  0.30343592,  0.32789723],
             [ 1.        ,  0.        ,  0.        ,  0.        ],
@@ -388,8 +386,8 @@ def small():
 
     Examples
     ========
-    >>> import hiive.mdptoolbox.example
-    >>> P, R = hiive.mdptoolbox.example.small()
+    >>> import mdptoolbox.example
+    >>> P, R = mdptoolbox.example.small()
     >>> P
     array([[[ 0.5,  0.5],
             [ 0.8,  0.2]],
@@ -403,63 +401,4 @@ def small():
     """
     P = _np.array([[[0.5, 0.5], [0.8, 0.2]], [[0, 1], [0.1, 0.9]]])
     R = _np.array([[5, 10], [-1, 2]])
-    return P, R
-
-def openai(env_name:str, render:bool=False, **kwargs):
-    """
-    Generate a MDPToolbox-formatted version of a *discrete* OpenAI Gym environment. 
-
-    You can find the list of available gym environments here: https://gym.openai.com/envs/#classic_control
-
-    You'll have to look at the source code of the environments for available kwargs; as it is not well documented.  
-
-    This function is used to generate a transition probability
-    (``A`` × ``S`` × ``S``) array ``P`` and a reward (``S`` × ``A``) matrix
-    ``R``.
-
-    Parameters
-    ---------
-    env_name : str
-        The name of the Open AI gym environment to model. 
-    render : bool 
-        Flag to render the environment via gym's `render()` function. 
-    
-    Returns
-    -------
-    out : tuple
-        ``out[0]`` contains the transition probability matrix P  and ``out[1]``
-        contains the reward matrix R. 
-    Examples
-    --------
-    >>> import hiive.mdptoolbox.example
-    >>> from gym.envs.toy_text.frozen_lake import generate_random_map
-    >>> random_map = generate_random_map(size=10, p=0.98)
-    >>> P, R = hiive.mdptoolbox.example.openai("FrozenLake-v0", desc=random_map)
-    >>> P
-    array([[[0., 0., 0., ..., 0., 0., 0.],
-        [0., 0., 0., ..., 0., 0., 0.],
-        [0., 0., 0., ..., 0., 0., 0.],
-    <BLANKLINE> 
-        [0., 0., 0., ..., 1., 0., 0.],
-        [0., 0., 0., ..., 0., 1., 0.],
-        [0., 0., 0., ..., 0., 0., 1.]]])
-    >>> R
-    array([[ -1.,  -1.,  -1.,  -1.,  -1., -10.],
-       [ -1.,  -1.,  -1.,  -1.,  -1., -10.],
-       [ -1.,  -1.,  -1.,  -1.,  -1., -10.],
-       ...,
-       [ -1.,  -1.,  -1.,  -1., -10., -10.],
-       [ -1.,  -1.,  -1.,  -1., -10., -10.],
-       [ -1.,  -1.,  -1.,  -1., -10., -10.]])
-    >>> P, R = hiive.mdptoolbox.example.openai("Taxi-v3", True)
-    +---------+
-    |R: | : :G|
-    | : | : : |
-    | : : : : |
-    | | : | : |
-    |Y| : |B: |
-    +---------+`
-    """
-
-    env = openai_.OpenAI_MDPToolbox(env_name, render, **kwargs)
-    return env.P, env.R
+    return(P, R)

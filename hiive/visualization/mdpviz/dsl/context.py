@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """This exists purely to avoid a cyclic dependency."""
-import hiive.visualization.mdpviz.mdp_spec
 from hiive.visualization import mdpviz
 
-mdp_spec: hiive.visualization.mdpviz.mdp_spec.MDPSpec = None
+mdp_spec: mdpviz.MDPSpec = None

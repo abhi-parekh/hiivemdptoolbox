@@ -13,8 +13,6 @@
 # limitations under the License.
 import contextlib
 
-import hiive.visualization.mdpviz.mdp_spec
-import hiive.visualization.mdpviz.reward
 from hiive.visualization import mdpviz
 from hiive.visualization.mdpviz.dsl import context as dsl_context
 from hiive.visualization.mdpviz.dsl import ast
@@ -39,7 +37,7 @@ def action(name=None):
 
 
 def reward(value):
-    return ast.Reward(hiive.visualization.mdpviz.reward.Reward(value))
+    return ast.Reward(mdpviz.Reward(value))
 
 
 def to_env():
@@ -57,6 +55,6 @@ def discount(value):
 @contextlib.contextmanager
 def new():
     old_context = dsl_context.mdp_spec
-    dsl_context.mdp_spec = hiive.visualization.mdpviz.mdp_spec.MDPSpec()
+    dsl_context.mdp_spec = mdpviz.MDPSpec()
     yield dsl_context.mdp_spec
     dsl_context.mdp_spec = old_context

@@ -18,17 +18,17 @@ This is a very basic solver.
 
 import numpy as np
 
-import hiive.visualization.mdpviz as mdpviz
+import hiive.visualization.mdpviz as mdp
 
 
 class LinearProgramming(object):
     def __init__(self, mdp_spec: mdpviz.MDPSpec):
-        self.gamma = mdp_spec.gamma
+        self.discount = mdp_spec.discount
         self.num_states = mdp_spec.num_states
         self.num_actions = mdp_spec.num_actions
         self.mdp_spec = mdp_spec
 
-        transitions = mdpviz.TransitionProbabilities(mdp_spec)
+        transitions = mdpviz.Transitions(mdp_spec)
         next_states = np.zeros(shape=(self.num_states, self.num_actions, self.num_states))
         expected_rewards = np.zeros(shape=(self.num_states, self.num_actions))
         for (state, action), choices in transitions.next_states.items():
@@ -66,7 +66,7 @@ class LinearProgramming(object):
         # TODO: somebody said that q table converges faster than v table
         # Is that true? What if take computation cost into account?
         # TODO: support passing it in as a parameter
-        q_table = self.expected_rewards + self.gamma * (
+        q_table = self.expected_rewards + self.discount * (
             self.next_states * v_vector.reshape((1, 1, self.num_states))).sum(axis=-1)
         return q_table
 
